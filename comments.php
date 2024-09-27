@@ -7,6 +7,6 @@ if (!isset($_SESSION["USER_ID"])) {
 }
 ?>
 
-<?php echo "Home Page"; ?>
+<?php echo "Comments Page"; ?>
 
 <?php require './includes/footer.php'; ?>
