@@ -1,160 +1,82 @@
 <?php
-    require_once 'config.php';
+include 'database.php';
 
-    class Auth extends Database {
-        // register user
-        public function register($fullname, $username, $bio, $email, $hashpass, $path) {
-            $sql = "INSERT INTO users(fullname, username, bio, email, password, image) VALUES (:fullname, :username, :bio, :email, :password, :image)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['fullname'=>$fullname, 'username'=>$username, 'bio'=>$bio, 'email'=>$email, 'password'=>$hashpass, 'image'=>$path]);
-            return true;
-        }
+session_start();
 
-        // check user already register or not
-        public function user_exist($email) {
-            $sql = "SELECT email FROM users WHERE email = :email";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['email'=>$email]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result;
-        }
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $action = mysqli_real_escape_string($con, $_POST["action"]);
 
-        // login user
-        public function login($email) {
-            $sql = "SELECT email, password FROM users WHERE email = :email AND status = 'active'";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['email'=>$email]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row;
-        }
+    if ($action === "register") {
+        $firstName = mysqli_real_escape_string($con, $_POST["firstName"]);
+        $lastName = mysqli_real_escape_string($con, $_POST["lastName"]);
+        $username = mysqli_real_escape_string($con, $_POST["username"]);
+        $email = mysqli_real_escape_string($con, $_POST["email"]);
+        $mobileNumber = mysqli_real_escape_string($con, $_POST["mobileNumber"]);
+        $password = mysqli_real_escape_string($con, $_POST["password"]);
+        $cf_password = mysqli_real_escape_string($con, $_POST["cf_password"]);
 
-        // get current user
-        public function currentUser($email) {
-            $sql = "SELECT * FROM users WHERE email = :email";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['email'=>$email]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row;
-        }
-        
-        // get category
-        public function getCategory() {
-            $sql = "SELECT * FROM categories";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        }
+        if ($firstName === "") {
+            $arr = array("status" => "error", "msg" => "First name is required", "field" => "firstName_error");
+        } elseif ($lastName === "") {
+            $arr = array("status" => "error", "msg" => "Last name is required", "field" => "lastName_error");
+        } elseif ($username === "") {
+            $arr = array("status" => "error", "msg" => "Username is required", "field" => "username_error");
+        } elseif ($email === "") {
+            $arr = array("status" => "error", "msg" => "Email is required", "field" => "email_error");
+        } elseif ($mobileNumber === "") {
+            $arr = array("status" => "error", "msg" => "Mobile number is required", "field" => "mobileNumber_error");
+        } elseif (strlen($password) < 6) {
+            $arr = array("status" => "error", "msg" => "Password length minimum 6", "field" => "password_error");
+        } elseif ($password !== $cf_password) {
+            $arr = array("status" => "error", "msg" => "Password and confirm password not match", "field" => "cf_password_error");
+        } else {
+            $check = mysqli_num_rows(mysqli_query($con, "SELECT * FROM users WHERE email='$email'"));
 
-        // add category
-        public function addCategory($name, $description, $status) {
-            $sql = "INSERT INTO categories (name, description, status) VALUES (:name, :description, :status)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['name'=>$name, 'description'=>$description, 'status'=>$status]);
-            return true;
+            if ($check > 0) {
+                $arr = array("status" => "error", "msg" => "Email id already registered", "field" => "email_error");
+            } else {
+                $new_password = password_hash($password, PASSWORD_BCRYPT);
+
+                $sql = "INSERT INTO users (firstName, lastName, username, mobileNumber, email, password) VALUES ('$firstName', '$lastName', '$username', '$mobileNumber', '$email', '$new_password')";
+
+                if (mysqli_query($con, $sql)) {
+                    $arr = array("status" => "success", "msg" => "Registration success", "field" => "form_msg");
+                } else {
+                    $arr = array("status" => "error", "msg" => mysqli_error($con), "field" => "email_error");
+                }
+            }
         }
 
-        // edit category
-        public function editCategory($id) {
-            $sql = "SELECT * FROM categories WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['id'=>$id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // update category
-        public function updateCategory($id, $name, $description) {
-            $sql = "UPDATE categories SET name = :name, description = :description WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['name'=>$name, 'description'=>$description, 'id'=>$id]);
-            return true;
-        }
-        
-        // delete category
-        public function deleteCategory($id) {
-            $sql = "DELETE FROM categories WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['id'=>$id]);
-            return true;
-        }
-
-        // get blog
-        public function getBlog() {
-            $sql = "SELECT * FROM blog";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // create blog
-        public function createBlog($title, $description, $content, $category, $path, $user, $status) {
-            $sql = "INSERT INTO blog(title, description, content, category, image, user, status) VALUES (:title, :description, :content, :category, :image, :user, :status)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['title'=>$title, 'description'=>$description, 'content'=>$content, 'category'=>$category, 'image'=>$path, 'user'=>$user, 'status'=>$status]);
-            return true;
-        }
-
-        // edit blog
-        public function editBlog($id) {
-            $sql = "SELECT * FROM blog WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['id'=>$id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // update blog
-        public function updateBlog($id, $title, $description, $content) {
-            $sql = "UPDATE blog SET title = :title, description = :description, content = :content WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['title'=>$title, 'description'=>$description, 'content'=>$content, 'id'=>$id]);
-            return true;
-        }
-        
-        // delete blog
-        public function deleteBlog($id) {
-            $sql = "DELETE FROM blog WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['id'=>$id]);
-            return true;
-        }
-
-        // get user
-        public function getUser() {
-            $sql = "SELECT * FROM users";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // edit user
-        public function editUser($id) {
-            $sql = "SELECT * FROM users WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute(['id'=>$id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // get blog in index page
-        public function getBlogIndex() {
-            $sql = "SELECT * FROM blog LIMIT 6";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        }
-
-        // search blog
-        public function searchBlog($search) {
-            $sql = "SELECT * FROM blog WHERE title like '%$search%'";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        }
+        echo json_encode($arr);
     }
+
+    if ($action === "login") {
+        $email = mysqli_real_escape_string($con, $_POST["email"]);
+        $password = mysqli_real_escape_string($con, $_POST["password"]);
+
+        if ($email === "") {
+            $arr = array("status" => "error", "msg" => "Email is required", "field" => "email_error");
+        } elseif ($password === "") {
+            $arr = array("status" => "error", "msg" => "Password is required", "field" => "password_error");
+        } else {
+            $result = mysqli_query($con, "SELECT * FROM users WHERE email = '$email'");
+
+            if ($result && mysqli_num_rows($result) > 0) {
+                $row = mysqli_fetch_assoc($result);
+                if (password_verify($password, $row['password'])) {
+                    $_SESSION["USER_ID"] = $row["id"];
+                    $_SESSION["USER_ROLE"] = $row["role"];
+
+                    $arr = array("status" => "success", "msg" => "Login success", "field" => "form_msg");
+                } else {
+                    $arr = array("status" => "error", "msg" => "Invalid login credential", "field" => "email_error");
+                }
+            } else {
+                $arr = array("status" => "error", "msg" => "Please enter a valid email address", "field" => "email_error");
+            }
+        }
+
+        echo json_encode($arr);
+    }
+}
 ?>

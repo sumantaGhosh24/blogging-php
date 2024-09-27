@@ -1,62 +1,95 @@
+<?php require "./includes/header.php"; ?>
+
 <?php
-    if (isset($_SESSION["user"])) {
-        header("location:index.php");
-    }
+if (isset($_SESSION["USER_ID"])) {
+    header("Location: index.php");
+    die();
+}
 ?>
 
-<?php include_once('./templates/top.php'); ?>
-<?php include_once('./templates/header.php'); ?>
-
-<!-- start register section -->
-<div class="container mt-5">
-      <div class="row">
-        <div class="col-10 offset-1 bg-white p-4 rounded shadow-lg">
-          <h2 class="text-center mb-4">Registration Form</h2>
-          <form id="register-form" enctype="multipart/form-data" method="POST" action="">
-            <div class="mb-3">
-              <label for="image" class="form-label"
-                >Upload your profile picture</label
-              >
-              <input
-                class="form-control form-control-lg"
-                id="image"
-                type="file" name="image"
-              />
+<div class="flex justify-center items-center h-screen bg-white">
+    <div class="bg-white rounded-lg shadow-md p-8 shadow-black w-[60%]">
+        <h1 class="text-3xl font-semibold mb-4 text-black">User Registration</h1>
+        <h2 class="text-gray-600 mb-6 text-black">Register to access our website</h2>
+        <span id="form_msg" class="text-green-500 font-bold text-center my-3"></span>
+        <form class="mb-6" id="register_form">
+            <div class="mb-4">
+                <input type="text" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your first name" name="firstName" />
+                <span id="firstName_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div class="mb-3">
-              <label for="fullname" class="form-label">Full Name</label>
-              <input type="text" class="form-control" id="fullname" name="fullname" required />
+            <div class="mb-4">
+                <input type="text" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your last name" name="lastName" />
+                <span id="lastName_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" required />
+            <div class="mb-4">
+                <input type="text" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your username" name="username" />
+                <span id="username_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div class="mb-3">
-              <label for="bio" class="form-label">Bio</label>
-              <input type="text" class="form-control" id="bio" name="bio" required />
+            <div class="mb-4">
+                <input type="email" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your email" name="email" />
+                <span id="email_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div class="mb-3">
-              <label for="email" class="form-label">Email Address</label>
-              <input type="email" class="form-control" id="email" name="email" required />
+            <div class="mb-4">
+                <input type="text" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your mobile number" name="mobileNumber" />
+                <span id="mobileNumber_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" required />
+            <div class="mb-4">
+                <input type="password" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your password" name="password" />
+                <span id="password_error" class="text-red-500 font-bold error_field"></span>
             </div>
-            <div id="register-err" class="text-danger my-3"></div>
-            <button type="submit" class="btn btn-lg btn-primary" id="register-btn">
-              Signup
-            </button>
-          </form>
-          <div>
-            <p class="mt-4">
-              Already have an account? <a href="./login.php">Login</a>
-            </p>
-          </div>
+            <div class="mb-4">
+                <input type="password" class="w-full px-4 py-2 rounded-md border border-gray-300"
+                    placeholder="Enter your confirm password" name="cf_password" />
+                <span id="cf_password_error" class="text-red-500 font-bold error_field"></span>
+            </div>
+            <input type="hidden" name="action" value="register" />
+            <button type="submit" id="register_submit"
+                class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-200">Register</button>
+        </form>
+        <div class="text-center text-black">
+            Already have an account?<a href="login.php" class="text-blue-500 ml-2 hover:underline">login</a>
         </div>
-      </div>
     </div>
-    <!-- end register section -->
+</div>
 
-<?php include_once('./templates/footer.php'); ?>
-<?php include_once('./templates/bottom.php'); ?>
+<script>
+    $(document).ready(function () {
+        $("#register_form").on("submit", function (e) {
+            $(".error_field").html("");
+            $("#register_submit").attr("disabled", true);
+            $("#register_submit").text("Processing...");
+
+            $.ajax({
+                url: "http://localhost:3000/includes/auth.php",
+                type: "post",
+                data: $("#register_form").serialize(),
+                success: function (result) {
+                    $("#register_submit").attr("disabled", false);
+                    $("#register_submit").text("Register");
+
+                    var data = $.parseJSON(result);
+
+                    if (data.status === "error") {
+                        $("#" + data.field).html(data.msg);
+                    }
+
+                    if (data.status === "success") {
+                        $("#" + data.field).html(data.msg);
+                        $("#register_form")[0].reset();
+                        // window.location.href = "register";
+                    }
+                }
+            })
+
+            e.preventDefault()
+        })
+    });
+</script>
+
+<?php require "./includes/footer.php"; ?>
